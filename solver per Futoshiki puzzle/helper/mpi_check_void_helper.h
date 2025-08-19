@@ -1,8 +1,9 @@
-#ifndef MPI_UPDATE_PUZZLE_H
-#define MPI_UPDATE_PUZZLE_H
+#ifndef MPI_CHECK_VOID_HELPER
+#define MPI_CHECK_VOID_HELPER
 
 #include <mpi.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #define M 64 // deve corrispondere al main
 #define N 9

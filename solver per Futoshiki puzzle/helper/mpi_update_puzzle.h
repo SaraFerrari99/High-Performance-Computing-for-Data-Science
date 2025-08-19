@@ -2,6 +2,7 @@
 #define MPI_UPDATE_PUZZLE_H
 
 #include <mpi.h>
+#include <stdio.h>
 
 #define M 64 // deve corrispondere al main
 #define N 9
