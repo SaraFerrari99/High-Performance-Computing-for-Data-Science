@@ -6,11 +6,12 @@
 #include "../helper/mpi_send_helpers.h"
 #include "../helper/mpi_update_puzzle.h"
 #include "../helper/mpi_check_void_helper.h"
+#include "../helper/mpi_rules_helper.h"
 
 #define N 9  // dimensione effettiva della griglia letta (numeri + simboli)
 #define M 64 // caratteri per riga (N + '\0')
 
-void set_puzzle(char puzzle[N][M], char puzzle_without_sign[5][M], char puzzle_without_sign_reverse[5][6])
+void set_puzzle(char puzzle[N][M], char puzzle_without_sign[5][M], char puzzle_without_sign_reverse[5][6], char puzzle_reverse[N][M])
 {
     FILE *fp = fopen("../puzzle/puzzle1.txt", "r");
     if (!fp)
@@ -64,6 +65,15 @@ void set_puzzle(char puzzle[N][M], char puzzle_without_sign[5][M], char puzzle_w
         puzzle_without_sign_reverse[c][5] = '\0'; // terminatore di stringa
     }
 
+    for (int c = 0; c < N; c++)
+    {
+        for (int r = 0; r < N; r++)
+        {
+            puzzle_reverse[c][r] = puzzle[r][c];
+        }
+        puzzle_reverse[c][5] = '\0'; // terminatore di stringa
+    }
+
     fclose(fp);
 }
 
@@ -71,6 +81,7 @@ int main(int argc, char *argv[])
 {
     int rank, size;
     char puzzle[N][M];
+    char puzzle_reverse[N][M];
     char puzzle_without_sign[5][M];
     char puzzle_without_sign_reverse[5][6];
     bool repeat = true;
@@ -81,7 +92,7 @@ int main(int argc, char *argv[])
 
     if (rank == 0)
     {
-        set_puzzle(puzzle, puzzle_without_sign, puzzle_without_sign_reverse);
+        set_puzzle(puzzle, puzzle_without_sign, puzzle_without_sign_reverse,puzzle_reverse);
 
         while (repeat)
         {
@@ -97,9 +108,9 @@ int main(int argc, char *argv[])
                 printf("%s\n", puzzle_without_sign_reverse[i]);
             }*/
 
-            //Manda righe e colonne ai worker
-            send_row(puzzle_without_sign);
-            send_column(puzzle_without_sign_reverse);
+            // Manda righe e colonne ai worker
+            send_row(puzzle_without_sign,puzzle);
+            send_column(puzzle_without_sign_reverse,puzzle_reverse);
 
             // Riceve righe aggiornate
             for (int r = 1; r <= 5; r++)
@@ -115,7 +126,8 @@ int main(int argc, char *argv[])
                 strcpy(puzzle_without_sign[r - 1], updated_row);
 
                 // appena trovo un true, lo segno
-                if (local_repeat){
+                if (local_repeat)
+                {
                     printf("trovato un true\n");
                     repeat = true;
                 }
@@ -131,7 +143,8 @@ int main(int argc, char *argv[])
 
                 strcpy(puzzle_without_sign_reverse[r - 6], updated_col);
 
-                if (local_repeat){
+                if (local_repeat)
+                {
                     printf("trovato un true\n");
                     repeat = true;
                 }
@@ -145,24 +158,28 @@ int main(int argc, char *argv[])
         {
             MPI_Send(stop_msg, 6, MPI_CHAR, i, 0, MPI_COMM_WORLD);
         }
+        printf("fuori dal while and END\n");
     }
     else if (rank >= 1 && rank <= 5)
     {
         while (1)
         {
             char my_row[6];
+            char my_row_reverse[6];
             MPI_Recv(my_row, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(my_row_reverse, 6, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
             if (strncmp(my_row, "STOP", 4) == 0)
             {
                 break;
             }
 
             printf("Processo %d ha ricevuto la riga: %s\n", rank, my_row);
-            bool change = check_only_one_void(my_row);
+            UpdateMessage res = apply_rules(my_row,my_row_reverse);
             printf("Processo %d nuova riga: %s\n", rank, my_row);
 
-            MPI_Send(my_row, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-            MPI_Send(&change, 1, MPI_C_BOOL, 0, 1, MPI_COMM_WORLD);
+            MPI_Send(res.line, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(&res.changed, 1, MPI_C_BOOL, 0, 1, MPI_COMM_WORLD);
         }
     }
     else if (rank >= 6 && rank <= 10)
@@ -170,18 +187,20 @@ int main(int argc, char *argv[])
         while (1)
         {
             char my_col[6];
+            char my_col_reverse[N];
             MPI_Recv(my_col, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(my_col_reverse, 6, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             if (strncmp(my_col, "STOP", 4) == 0)
             {
                 break;
             }
 
             printf("Processo %d ha ricevuto la colonna: %s\n", rank, my_col);
-            bool change = check_only_one_void(my_col);
+            UpdateMessage res = apply_rules(my_col,my_col_reverse);
             printf("Processo %d nuova colonna: %s\n", rank, my_col);
 
-            MPI_Send(my_col, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-            MPI_Send(&change, 1, MPI_C_BOOL, 0, 1, MPI_COMM_WORLD);
+            MPI_Send(res.line, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(&res.changed, 1, MPI_C_BOOL, 0, 1, MPI_COMM_WORLD);
             printf("send inviata");
         }
     }
