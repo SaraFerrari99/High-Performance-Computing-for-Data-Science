@@ -4,10 +4,11 @@
 #include <mpi.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 
 #define M 64 // deve corrispondere al main
-#define N 9
 
-bool check_minor_major(char line_reverse[6], char line[6]);
+bool check_minor_major(char line_reverse[10], char line[6]);
 
 #endif

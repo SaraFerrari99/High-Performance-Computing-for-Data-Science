@@ -1,6 +1,6 @@
 #include "mpi_check_void_helper.h"
 
-bool check_only_one_void(char line[6])
+bool check_only_one_void(char line[6], char line_sign[10])
 {
     int zero_index = -1;
     bool found[6] = {false}; // indice 1..5
@@ -37,7 +37,11 @@ bool check_only_one_void(char line[6])
         if (!found[num])
         {
             line[zero_index] = '0' + num; // sostituisci lo 0
-            printf("Sostituito 0 con %d nella posizione %d\n", num, zero_index);
+            for (int i = 0; i < 5; i++)
+            {
+                line_sign[i * 2] = line[i];
+            }
+
             return true; // ho fatto una sostituzione
         }
     }

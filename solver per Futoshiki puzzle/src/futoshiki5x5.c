@@ -11,7 +11,7 @@
 #define N 9  // dimensione effettiva della griglia letta (numeri + simboli)
 #define M 64 // caratteri per riga (N + '\0')
 
-void set_puzzle(char puzzle[N][M], char puzzle_without_sign[5][M], char puzzle_without_sign_reverse[5][6], char puzzle_reverse[N][M])
+void set_puzzle(char puzzle[N][M], char puzzle_without_sign[5][M], char puzzle_without_sign_reverse[5][6], char puzzle_reverse[M][10])
 {
     FILE *fp = fopen("../puzzle/puzzle1.txt", "r");
     if (!fp)
@@ -65,13 +65,30 @@ void set_puzzle(char puzzle[N][M], char puzzle_without_sign[5][M], char puzzle_w
         puzzle_without_sign_reverse[c][5] = '\0'; // terminatore di stringa
     }
 
-    for (int c = 0; c < N; c++)
+    int cols_lenght = strlen(puzzle[0]); // 11
+
+    for (int c = 0; c < cols_lenght; c++)
     {
         for (int r = 0; r < N; r++)
         {
             puzzle_reverse[c][r] = puzzle[r][c];
         }
-        puzzle_reverse[c][5] = '\0'; // terminatore di stringa
+        puzzle_reverse[c][N] = '\0';
+
+    }
+
+    for (int c = 0; c < cols_lenght; c = c +2){
+        for (int r = 0; puzzle_reverse[c][r] != '\0'; r++)
+        {
+            if (puzzle_reverse[c][r] == '^')
+            {
+                puzzle_reverse[c][r] = '<';
+            }
+            if (puzzle_reverse[c][r] == 'v')
+            {
+                puzzle_reverse[c][r] = '>';
+            }
+        }
     }
 
     fclose(fp);
@@ -81,7 +98,7 @@ int main(int argc, char *argv[])
 {
     int rank, size;
     char puzzle[N][M];
-    char puzzle_reverse[N][M];
+    char puzzle_reverse[M][10];
     char puzzle_without_sign[5][M];
     char puzzle_without_sign_reverse[5][6];
     bool repeat = true;
@@ -92,25 +109,15 @@ int main(int argc, char *argv[])
 
     if (rank == 0)
     {
-        set_puzzle(puzzle, puzzle_without_sign, puzzle_without_sign_reverse,puzzle_reverse);
+        set_puzzle(puzzle, puzzle_without_sign, puzzle_without_sign_reverse, puzzle_reverse);
 
         while (repeat)
         {
             repeat = false;
 
-            /*printf("\nPuzzle aggiornato (righe):\n");
-            for (int i = 0; i < 5; i++) {
-                printf("%s\n", puzzle_without_sign[i]);
-            }
-
-            printf("\nPuzzle aggiornato (colonne):\n");
-            for (int i = 0; i < 5; i++) {
-                printf("%s\n", puzzle_without_sign_reverse[i]);
-            }*/
-
             // Manda righe e colonne ai worker
-            send_row(puzzle_without_sign,puzzle);
-            send_column(puzzle_without_sign_reverse,puzzle_reverse);
+            send_row(puzzle_without_sign, puzzle);
+            send_column(puzzle_without_sign_reverse, puzzle_reverse);
 
             // Riceve righe aggiornate
             for (int r = 1; r <= 5; r++)
@@ -124,13 +131,6 @@ int main(int argc, char *argv[])
                 updated_row[5] = '\0';
 
                 strcpy(puzzle_without_sign[r - 1], updated_row);
-
-                // appena trovo un true, lo segno
-                if (local_repeat)
-                {
-                    printf("trovato un true\n");
-                    repeat = true;
-                }
             }
 
             // Riceve colonne aggiornate
@@ -142,16 +142,16 @@ int main(int argc, char *argv[])
                 MPI_Recv(&local_repeat, 1, MPI_C_BOOL, r, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
                 strcpy(puzzle_without_sign_reverse[r - 6], updated_col);
-
-                if (local_repeat)
-                {
-                    printf("trovato un true\n");
-                    repeat = true;
-                }
             }
 
             char array_transposed[5][6];
-            update_puzzle_unsigned(puzzle_without_sign, puzzle_without_sign_reverse, array_transposed);
+            repeat = update_puzzle_unsigned(puzzle_without_sign, puzzle_without_sign_reverse, array_transposed);
+
+            for(int i = 0; i < 5; i++){
+                printf("array final %s\n",puzzle_without_sign[i]);
+            }
+
+            printf("END NEW ARRay");
         }
         char stop_msg[6] = "STOP0"; // esattamente 6 caratteri
         for (int i = 1; i <= 10; i++)
@@ -165,18 +165,17 @@ int main(int argc, char *argv[])
         while (1)
         {
             char my_row[6];
-            char my_row_reverse[6];
+            char my_row_sign[10];
             MPI_Recv(my_row, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(my_row_reverse, 6, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(my_row_sign, 9, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            my_row_sign[9] = '\0';  // aggiungi terminatore
+            
 
             if (strncmp(my_row, "STOP", 4) == 0)
             {
                 break;
             }
-
-            printf("Processo %d ha ricevuto la riga: %s\n", rank, my_row);
-            UpdateMessage res = apply_rules(my_row,my_row_reverse);
-            printf("Processo %d nuova riga: %s\n", rank, my_row);
+            UpdateMessage res = apply_rules(my_row, my_row_sign);
 
             MPI_Send(res.line, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
             MPI_Send(&res.changed, 1, MPI_C_BOOL, 0, 1, MPI_COMM_WORLD);
@@ -187,21 +186,19 @@ int main(int argc, char *argv[])
         while (1)
         {
             char my_col[6];
-            char my_col_reverse[N];
+            char my_col_reverse[10];
             MPI_Recv(my_col, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(my_col_reverse, 6, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(my_col_reverse, 9, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            my_col_reverse[9] = '\0';  // aggiungi terminatore
+
             if (strncmp(my_col, "STOP", 4) == 0)
             {
                 break;
             }
-
-            printf("Processo %d ha ricevuto la colonna: %s\n", rank, my_col);
-            UpdateMessage res = apply_rules(my_col,my_col_reverse);
-            printf("Processo %d nuova colonna: %s\n", rank, my_col);
+            UpdateMessage res = apply_rules(my_col, my_col_reverse);
 
             MPI_Send(res.line, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
             MPI_Send(&res.changed, 1, MPI_C_BOOL, 0, 1, MPI_COMM_WORLD);
-            printf("send inviata");
         }
     }
 

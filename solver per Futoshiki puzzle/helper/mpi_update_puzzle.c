@@ -1,4 +1,5 @@
 #include "mpi_update_puzzle.h"
+#include <unistd.h>
 
 void transpose(char input[5][6], char output[5][6])
 {
@@ -19,7 +20,7 @@ void transpose(char input[5][6], char output[5][6])
     }
 }
 
-void update_puzzle_unsigned(char row_array[N][M], char col_array[5][6], char array_transposed[5][6])
+bool update_puzzle_unsigned(char row_array[N][M], char col_array[5][6], char array_transposed[5][6])
 {
     // Trasponi le colonne
     transpose(col_array, array_transposed);
@@ -27,11 +28,6 @@ void update_puzzle_unsigned(char row_array[N][M], char col_array[5][6], char arr
     printf("array trasposto\n");
     for(int i = 0; i < 5; i++){
         printf("%s\n", array_transposed[i]);
-    }
-
-    printf("array row\n");
-    for(int i = 0; i < 5; i++){
-        printf("%s\n", row_array[i]);
     }
 
     // Fusione: aggiorna row_array usando array_transposed
@@ -57,4 +53,15 @@ void update_puzzle_unsigned(char row_array[N][M], char col_array[5][6], char arr
         }
         col_array[c][5] = '\0'; // terminatore di stringa
     }
+
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (row_array[i][j] == '0') {
+                printf("TROVATO UNO 0");
+                sleep(5);
+                return true; // trovato ancora uno zero
+            }
+        }
+    }
+    return false;
 }
