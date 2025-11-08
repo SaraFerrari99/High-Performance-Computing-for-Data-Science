@@ -17,19 +17,12 @@ int deduceBetween(int a, int b, char leftOp, char rightOp) {
 bool check_number_between(char line_sign[10], char line[6])
 {
     bool modified = false;
-    printf("QUIIIIIIIIIIIII\n");
-    printf("line here : %s\n",line_sign);
 
     // Scansiona caratteri
     for (int i = 0; i < strlen(line_sign); i++) {
-        printf("nel for \n");
         if (line_sign[i] == '0') {
-            printf("é zero \n");
             // Controllo pattern vicino: num < 0 < num
             if (i > 0 && isdigit(line_sign[i-2]) && i+2 < strlen(line_sign) && isdigit(line_sign[i+2]) && ((line_sign[i-1] == '<' && line_sign[i+1] == '<') || (line_sign[i-1] == '>' && line_sign[i+1] == '>'))) {
-                printf("Il numero 1 è: %c\n", line_sign[i-2]);
-                printf("Il numero 2 è: %c\n", line_sign[i]);
-                printf("Il numero 3 è: %c\n", line_sign[i+2]);
 
                 int left = line_sign[i-2] - '0';
                 int right = line_sign[i+2] - '0';
@@ -38,7 +31,6 @@ bool check_number_between(char line_sign[10], char line[6])
 
                 int val = deduceBetween(left, right, left_sign, right_sign);
                 if (val != 0) {
-                    printf("Lo 0 in posizione %d deve essere %d\n", i, val);
                     line_sign[i] = val + '0';
                     line[i/2] = val + '0';
                     modified = true;

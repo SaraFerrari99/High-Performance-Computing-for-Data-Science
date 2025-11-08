@@ -20,8 +20,24 @@ void transpose(char input[5][6], char output[5][6])
     }
 }
 
-bool update_puzzle_unsigned(char row_array[N][M], char col_array[5][6], char array_transposed[5][6])
+bool different(char a[N][M], char b[N][M]) {
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (a[i][j] != b[i][j]) {
+                for(int i = 0; i < 9; i++){
+                    strcpy(b[i], a[i]);
+                }
+                return true;  // appena trovi una differenza, esci e ritorna true
+            }
+        }
+    }
+    return false; // se arrivi qui, sono identici in tutto
+}
+
+
+bool update_puzzle_unsigned(char row_array[N][M], char col_array[5][6], char array_transposed[5][6],char puzzle[N][M], char last_array[N][M], char puzzle_reverse[N][M])
 {
+    //puzzle_without_sign, puzzle_without_sign_reverse, array_transposed,puzzle, puzzle_reverse
     // Trasponi le colonne
     transpose(col_array, array_transposed);
 
@@ -54,14 +70,46 @@ bool update_puzzle_unsigned(char row_array[N][M], char col_array[5][6], char arr
         col_array[c][5] = '\0'; // terminatore di stringa
     }
 
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            if (row_array[i][j] == '0') {
-                printf("TROVATO UNO 0");
-                sleep(5);
-                return true; // trovato ancora uno zero
+    for(int i = 0; i < 5; i++){
+        for(int j = 0; j < 5; j++){
+            puzzle[i*2][j*2] = row_array[i][j];
+        }
+    }
+
+    //puzzle_reverse
+    printf("puzzle reverse\n");
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if(puzzle[i][j] == '^'){
+                puzzle_reverse[j][i] = '<';
+            }else{
+                if(puzzle[i][j] == 'v'){
+                    puzzle_reverse[j][i] = '>';
+                }else{
+                    puzzle_reverse[j][i] = puzzle[i][j];
+                }
             }
         }
     }
-    return false;
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            printf("%c", puzzle_reverse[i][j]);
+        }
+        printf("\n");
+    }
+
+    printf("puzzle\n");
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            printf("%c", puzzle[i][j]);
+        }
+        printf("\n");
+    }
+
+    bool save_return = different(puzzle, last_array);
+
+    return save_return;
+
 }
+

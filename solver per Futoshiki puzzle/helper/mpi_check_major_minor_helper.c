@@ -12,17 +12,30 @@ bool check_minor_major(char line_sign[10], char line[6])
     bool modified = false;
     int len = strlen(save_array);
 
-    for (int i = 0; i < len - 2; i++)
+    for (int i = 0; i < len; i++)
     {
-        if (save_array[i] == '2' && save_array[i + 1] == '>' && save_array[i + 2] == '0')
-        {
-            save_array[i + 2] = '1';
-            modified = true;
-        }
-        else if (save_array[i] == '4' && save_array[i + 1] == '<' && save_array[i + 2] == '0')
-        {
-            save_array[i + 2] = '5';
-            modified = true;
+        if(i == 0 && i < len -2 ){
+            if (save_array[i] == '2' && save_array[i + 1] == '>' && save_array[i + 2] == '0')
+            {
+                save_array[i + 2] = '1';
+                modified = true;
+            }
+            else if (save_array[i] == '4' && save_array[i + 1] == '<' && save_array[i + 2] == '0')
+            {
+                save_array[i + 2] = '5';
+                modified = true;
+            }
+        }else if (i !=0){
+            if (save_array[i] == '2' && save_array[i - 1] == '<' && save_array[i - 2] == '0')
+            {
+                save_array[i - 2] = '1';
+                modified = true;
+            }
+            else if (save_array[i] == '4' && save_array[i - 1] == '>' && save_array[i - 2] == '0')
+            {
+                save_array[i - 2] = '5';
+                modified = true;
+            }
         }
     }
 
