@@ -3,6 +3,7 @@
         "mpi_check_major_minor_helper.h": "c",
         "mpi_send_helpers.h": "c",
         "stdio.h": "c",
-        "mpi_check_void_helper.h": "c"
+        "mpi_check_void_helper.h": "c",
+        "mpi_check_cross.h": "c"
     }
 }

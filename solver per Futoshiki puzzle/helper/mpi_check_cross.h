@@ -17,6 +17,11 @@ typedef struct {
     char row[6];     // qui metti la riga o colonna (5 + terminatore '\0')
 } UpdateLine;
 
+typedef struct{
+    char possible_number[5];
+    int count;
+}PossibleNumber;
+
 UpdateLine cross_rules(char column[P], char row[P], int rank, int number_of_column);
 
 #endif

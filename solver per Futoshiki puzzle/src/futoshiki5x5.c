@@ -99,6 +99,26 @@ void set_puzzle(char puzzle[N][M], char last_array[N][M],char puzzle_without_sig
     }
 }
 
+void check_if_array_completed(char puzzle_without_sign[5][M],bool *repeat,char end[10]){
+
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (puzzle_without_sign[i][j] == '0') {
+                printf("TROVATO UNO 0");
+                strcpy(end,"0 FOUND");
+                *repeat = true; // trovato ancora uno zero
+            }
+        }
+    }
+
+    if(strcmp(end, "0 FOUND") != 0){
+        printf("NESSUNO 0 TROVATO\n");
+        *repeat = false;
+    }
+
+    strcpy(end,"NOTHING");
+}
+
 int main(int argc, char *argv[])
 {
     int rank, size;
@@ -110,6 +130,7 @@ int main(int argc, char *argv[])
     bool repeat = true;
     bool first_check = false;
     bool second_check = false;
+    char end[10];
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -121,11 +142,8 @@ int main(int argc, char *argv[])
 
         while (repeat)
         {
+            printf("NUOVO CICLO\n");
             while(!first_check){
-                printf("array puzzle stampa iniizale\n");
-                for(int i = 0; i < 9; i++){
-                    printf("%s\n", puzzle[i]);
-                }
                 // Manda righe e colonne ai worker
                 send_row(puzzle_without_sign, puzzle, "1");
                 send_column(puzzle_without_sign_reverse, puzzle_reverse);
@@ -156,25 +174,32 @@ int main(int argc, char *argv[])
                 }
 
                 char array_transposed[5][6];
-                repeat = update_puzzle_unsigned(puzzle_without_sign, puzzle_without_sign_reverse, array_transposed,puzzle,last_array, puzzle_reverse);
+                first_check = update_puzzle_unsigned(puzzle_without_sign, puzzle_without_sign_reverse, array_transposed,puzzle,last_array, puzzle_reverse);
 
                 for(int i = 0; i < 5; i++){
                     printf("array final %s\n",puzzle_without_sign[i]);
                 }
 
-                printf("END NEW ARRay\n");
+                printf("END First ARRay update\n");
             }
+
+            printf("FUBE PRIMO CICLO\n");
+
 
             //IMPLEMENT X LOGIC ! ROW ALL COLUMS 
             //send to project between 11 and 15 row and column to understand + 0
             // Manda righe e colonne ai worker
 
+            check_if_array_completed(puzzle_without_sign,&repeat,end);
+            
+            second_check = false;
+
             while(!second_check){
+                bool result = true;
                 char update_col_cross[6];
                 char update_row_cross[6];
                 for(int i = 0; i < 5; i++){
                     send_row(puzzle_without_sign, puzzle, "2");
-                    printf("puzzle reverse amandata colonna numero %i \n  %s\n", i, puzzle_reverse[i*2]); //da aggiornare puzzle reverse
                     send_only_one_column(puzzle_without_sign_reverse[i],puzzle_reverse[i*2]);
                     for(int j = 0; j < 5; j++){
                         MPI_Send(&i, 1, MPI_INT, j + 11, 11, MPI_COMM_WORLD);
@@ -184,8 +209,6 @@ int main(int argc, char *argv[])
                         MPI_Recv(update_col_cross, 6, MPI_CHAR, m+11, 9, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                         MPI_Recv(update_row_cross, 6, MPI_CHAR, m+11, 10, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                         strcpy(puzzle_without_sign[m], update_row_cross);
-                        printf("received from %i\n", m+11);
-                        printf("puzzle string row update %s\n",puzzle_without_sign[m]);
 
                         //PRIMA DI FARE L UPDATE DELLA COLONNA EFFETTIVA VA AGGIORNATA LA COLONNA TOTALE PER TUTTI
                         for (int k = 0; k < 5; k++) {
@@ -193,14 +216,19 @@ int main(int argc, char *argv[])
                                 puzzle_without_sign_reverse[i][k] = update_col_cross[k];
                             }
                         }
-
-                        printf("colonne del puzzle %s\n",puzzle_without_sign_reverse[i]);
                     }
                     char array_transposed_cross[5][6];
-                    repeat = update_puzzle_unsigned(puzzle_without_sign, puzzle_without_sign_reverse, array_transposed_cross,puzzle, last_array, puzzle_reverse);
+                    result = update_puzzle_unsigned(puzzle_without_sign, puzzle_without_sign_reverse, array_transposed_cross,puzzle, last_array, puzzle_reverse);
                     printf("UPDATED");
+
+                    if(i == 4){
+                        printf("arrivato al quinto \n");
+                        second_check = result;
+                    }
                 }
             }
+
+            first_check = false;
 
             //DOVREI AVER AGGIORNATO TUTTO GIA !! VERIFICA!!
 
@@ -208,20 +236,11 @@ int main(int argc, char *argv[])
                 printf("array final %s\n",puzzle_without_sign[i]);
             }
 
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 5; j++) {
-                    if (puzzle_without_sign[i][j] == '0') {
-                        printf("TROVATO UNO 0");
-                        sleep(5);
-                        repeat = true; // trovato ancora uno zero
-                    }
-                }
-            }
-
+            check_if_array_completed(puzzle_without_sign,&repeat,end);
 
         }
         char stop_msg[6] = "STOP0"; // esattamente 6 caratteri
-        for (int i = 1; i <= 16; i++)
+        for (int i = 1; i <= 15; i++)
         {
             MPI_Send(stop_msg, 6, MPI_CHAR, i, 0, MPI_COMM_WORLD);
         }
@@ -291,8 +310,7 @@ int main(int argc, char *argv[])
             }
 
             UpdateLine res = cross_rules(my_col_reverse, my_row, rank, number_of_column);//ADD HELPER + FUNCTION
-            printf(" res_col %s \n", res.col);
-            printf("res row %s \n", res.row);
+            printf("res_col %s\n  res_row: %s\n",res.col, res.row);
             MPI_Send(res.col, 6, MPI_CHAR, 0, 9, MPI_COMM_WORLD);
             MPI_Send(res.row, 6, MPI_CHAR, 0, 10, MPI_COMM_WORLD);
             //ADD SEND TO 0
