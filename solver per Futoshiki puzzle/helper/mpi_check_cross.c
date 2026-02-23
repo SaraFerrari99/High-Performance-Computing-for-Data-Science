@@ -2,16 +2,14 @@
 
 void check_valid_number(char col[P], char row[P], PossibleNumber *number_possible){
     number_possible->count = 0;
-
+    //per ogni numero per ogni elemento della riga
     for (int i = 1; i < 6; i++) {
         bool found = false;
         for (int j = 0; j < 5; j++) {
             if (col[j*2] == '0' + i || row[j*2] == '0' + i) {
-                printf("numero trovato %i\n", i);
                 found = true;
                 break;
-            }
-            
+            } 
         }
 
         if (!found) {
@@ -117,6 +115,22 @@ bool check_constraints(char line[P], int pos, int num) {
     return true;
 }
 
+bool check_full_line(char line[P]) {
+    for(int i = 1; i < P-1; i += 2) {
+        if(line[i] == '<') {
+            if(is_digit(line[i-1]) && is_digit(line[i+1])) {
+                if(line[i-1] >= line[i+1]) return false;
+            }
+        }
+        else if(line[i] == '>') {
+            if(is_digit(line[i-1]) && is_digit(line[i+1])) {
+                if(line[i-1] <= line[i+1]) return false;
+            }
+        }
+    }
+    return true;
+}
+
 char take_final_value(char row[P], int pos, char col[P], int *rMin, int *rMax, int *count) {
 
     int used_row[6] = {0};
@@ -141,11 +155,14 @@ char take_final_value(char row[P], int pos, char col[P], int *rMin, int *rMax, i
 
     // Controlla tutti i numeri possibili tra rMin e rMax
     for(int n = *rMin; n <= *rMax; n++) {
-        if(!used_row[n] && !used_col[n] && check_constraints(row, pos, n)) {
+        row[pos] = '0' + n;
+        if(!used_row[n] && !used_col[n] && check_constraints(row, pos, n) && check_full_line(row)) {
             final_value = '0' + n;
             (*count)++;
         }
     }
+
+    row[pos] = '0'; // ripristino
 
     if(*count > 1) {
         final_value = '0'; // più di un candidato possibile
@@ -169,41 +186,36 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
                     check_valid_number(col, row, &number);
 
                     if(number.count == 1){
-                        printf("ONLY ONE NUMBER FIND %c\n",number.possible_number[0]);
                         row[number_of_column *2] = number.possible_number[0];
                         col[0] = number.possible_number[0];
                         result.row[5] = '\0';
                         result.col[5] = '\0';
-                        printf("row :  %c and column: %c\n", row[number_of_column*2], col[0]);
                         changed = 0;
-                    }  
+                        break;
+                    } 
+
+                    int pos = number_of_column * 2;
+                    int rMin = 1;
+                    int rMax = 5;
+
+                    //range obtain from < and > of the row
+                    extract_range_from_constraints(row, pos, &rMin, &rMax);
+
+                    int count = 0;
+                    char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
+
+                    //  certain deduction
+                    if(count == 1 && row[pos] == '0'){
+                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        col[0] = final_value;
+                        result.row[5] = '\0';
+                        result.col[5] = '\0';
+                    }
+
+                    changed = 0; 
+                    break;
                 }
-
-                int pos = number_of_column * 2;
-                int rMin = 1;
-                int rMax = 5;
-
-                //range obtain from < and > of the row
-                extract_range_from_constraints(row, pos, &rMin, &rMax);
-
-                int count = 0;
-                char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
-
-                printf("count %i and final number %c\n", count, final_value);
-                //  certain deduction
-                if(count == 1 && row[pos] == '0'){
-                    printf("Deduzione incrociata: %c\n", final_value);
-
-                    row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
-                    col[0] = final_value;
-                    result.row[5] = '\0';
-                    result.col[5] = '\0';
-                    printf("row :  %c and column: %c\n", row[pos], col[0]);
-
-                }
-
                 changed = 0;
-
             };
             break;
     
@@ -214,129 +226,114 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
                     check_valid_number(col, row, &number);   
 
                     if(number.count == 1){
-                        printf("ONLY ONE NUUMBER FIND %c\n",number.possible_number[0]);
                         row[number_of_column*2] = number.possible_number[0];
                         col[2] = number.possible_number[0];
                         result.row[5] = '\0';
                         result.col[5] = '\0';
-                        printf("row :  %c and column: %c\n", row[number_of_column*2], col[2]);
                         changed = 0;
-                    }                 
+                        break;
+                    }  
+                    int pos = number_of_column * 2;
+                    int rMin = 1;
+                    int rMax = 5;
+
+                    //range obtain from < and > of the row
+                    extract_range_from_constraints(row, pos, &rMin, &rMax);
+
+                    int count = 0;
+                    char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
+
+                    //  certain deduction
+                    if(count == 1 && row[pos] == '0'){
+
+                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        col[2] = final_value;
+                        result.row[5] = '\0';
+                        result.col[5] = '\0';
+                    }
+
+                    changed = 0;   
+                    break;            
                 }   
-
-                int pos = number_of_column * 2;
-                int rMin = 1;
-                int rMax = 5;
-
-                //range obtain from < and > of the row
-                extract_range_from_constraints(row, pos, &rMin, &rMax);
-
-                int count = 0;
-                char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
-
-                printf("count %i and final number %c\n", count, final_value);
-                //  certain deduction
-                if(count == 1 && row[pos] == '0'){
-                    printf("Deduzione incrociata: %c\n", final_value);
-
-                    row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
-                    col[2] = final_value;
-                    result.row[5] = '\0';
-                    result.col[5] = '\0';
-                    printf("row :  %c and column: %c\n", row[pos], col[2]);
-
-                }
-
                 changed = 0;
-
             };  
             break;
 
         case 13:
             while(changed == 1){
-
                 if(col[4] == '0'){
                     check_valid_number(col, row, &number);
                     
                     if(number.count == 1){
-                        printf("ONLY ONE NUUMBER FIND %c\n",number.possible_number[0]);
                         row[number_of_column*2] = number.possible_number[0];
                         col[4] = number.possible_number[0];
                         result.row[5] = '\0';
                         result.col[5] = '\0';
-                        printf("row :  %c and column: %c\n", row[number_of_column*2], col[4]);
-                        changed = 0;
+                        changed = 0;                        
+                        break;
                     } 
+
+                    int pos = number_of_column * 2;
+                    int rMin = 1;
+                    int rMax = 5;
+
+                    //range obtain from < and > of the row
+                    extract_range_from_constraints(row, pos, &rMin, &rMax);
+
+                    int count = 0;
+                    char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
+
+                    //  certain deduction
+                    if(count == 1 && row[pos] == '0'){
+                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        col[4] = final_value;
+                        result.row[5] = '\0';
+                        result.col[5] = '\0';
+                    }
+
+                    changed = 0;
+                    break;
                 }
-
-                int pos = number_of_column * 2;
-                int rMin = 1;
-                int rMax = 5;
-
-                //range obtain from < and > of the row
-                extract_range_from_constraints(row, pos, &rMin, &rMax);
-
-                int count = 0;
-                char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
-
-                printf("count %i and final number %c\n", count, final_value);
-                //  certain deduction
-                if(count == 1 && row[pos] == '0'){
-                    printf("Deduzione incrociata: %c\n", final_value);
-
-                    row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
-                    col[4] = final_value;
-                    result.row[5] = '\0';
-                    result.col[5] = '\0';
-                    printf("row :  %c and column: %c\n", row[pos], col[4]);
-
-                }
-
                 changed = 0;
-            
             };
             break;
 
         case 14:
             while(changed == 1){
-
                 if(col[6] == '0'){
                     check_valid_number(col, row, &number);
 
                     if(number.count == 1){
-                        printf("ONLY ONE NUUMBER FIND %c\n",number.possible_number[0]);
                         row[number_of_column*2] = number.possible_number[0];
                         col[6] = number.possible_number[0];
                         result.row[5] = '\0';
                         result.col[5] = '\0';
-                        printf("row :  %c and column: %c\n", row[number_of_column*2], col[6]);
                         changed = 0;
+                        break;
                     } 
+
                     
+                    int pos = number_of_column * 2;
+                    int rMin = 1;
+                    int rMax = 5;
+
+                    //range obtain from < and > of the row
+                    extract_range_from_constraints(row, pos, &rMin, &rMax);
+
+                    int count = 0;
+                    char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
+
+                    //  certain deduction
+                    if(count == 1 && row[pos] == '0'){
+                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        col[6] = final_value;
+                        result.row[5] = '\0';
+                        result.col[5] = '\0';
+                    }
+
+                    changed = 0;  
+                    break;
                 }
-
-                int pos = number_of_column * 2;
-                int rMin = 1;
-                int rMax = 5;
-
-                //range obtain from < and > of the row
-                extract_range_from_constraints(row, pos, &rMin, &rMax);
-
-                int count = 0;
-                char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
-
-                printf("count %i and final number %c\n", count, final_value);
-                //  certain deduction
-                if(count == 1 && row[pos] == '0'){
-                    printf("Deduzione incrociata: %c\n", final_value);
-
-                    row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
-                    col[6] = final_value;
-                    result.row[5] = '\0';
-                    result.col[5] = '\0';
-                    printf("row :  %c and column: %c\n", row[pos], col[6]);
-                }
-
                 changed = 0;
 
             };
@@ -349,41 +346,37 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
                     check_valid_number(col, row, &number);
                 
                     if(number.count == 1){
-                        printf("ONLY ONE NUUMBER FIND %c\n",number.possible_number[0]);
                         row[number_of_column*2] = number.possible_number[0];
                         col[8] = number.possible_number[0];
                         result.row[5] = '\0';
                         result.col[5] = '\0';
-                        printf("row :  %c and column: %c\n", row[number_of_column*2], col[8]);
                         changed = 0;
+                        break;
                     } 
-                
-                }
 
-                int pos = number_of_column * 2;
-                int rMin = 1;
-                int rMax = 5;
+                    int pos = number_of_column * 2;
+                    int rMin = 1;
+                    int rMax = 5;
 
-                //range obtain from < and > of the row
-                extract_range_from_constraints(row, pos, &rMin, &rMax);
+                    //range obtain from < and > of the row
+                    extract_range_from_constraints(row, pos, &rMin, &rMax);
 
-                int count = 0;
-                char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
+                    int count = 0;
+                    char final_value = take_final_value(row, pos, col, &rMin, &rMax, &count);
 
-                printf("count %i and final number %c\n", count, final_value);
-                //  certain deduction
-                if(count == 1 && row[pos] == '0'){
-                    printf("Deduzione incrociata: %c\n", final_value);
+                    //  certain deduction
+                    if(count == 1 && row[pos] == '0'){
+                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        col[8] = final_value;
+                        result.row[5] = '\0';
+                        result.col[5] = '\0';
+                    }
 
-                    row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
-                    col[8] = final_value;
-                    result.row[5] = '\0';
-                    result.col[5] = '\0';
-                    printf("row :  %c and column: %c\n", row[pos], col[8]);
+                    changed = 0;
+                    break;
                 }
 
                 changed = 0;
-
             };
             break;
     
@@ -391,15 +384,12 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
             break;
     }
     //IMPLEMENTARE LA LOGICA E AGGIORNARE RESULT.ROW E RESULT.COL
-    //SOLO PER TEST
-    //char row_test[9] = {'0','<','0','<','0','<','0','<','0'};
-    //char col_test[9] = {'0','<','0','<','0','<','0','<','0'};
 
-    for(int i = 0; i < P/2; i++){
+    for(int i = 0; i < 5; i++){
         result.row[i] = row[i*2];
         result.col[i] = col[i*2]; 
-    }  
 
+    }  
     result.row[5] = '\0';
     result.col[5] = '\0'; 
 
