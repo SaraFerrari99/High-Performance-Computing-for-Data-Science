@@ -24,7 +24,6 @@ typedef struct{
 
 UpdateLine cross_rules(char column[P], char row[P], int rank, int number_of_column);
 
-void extract_range_from_constraints(char line[P], int pos, int *minV, int *maxV);
 bool check_constraints(char line[P], int pos, int value);
 
 #endif
