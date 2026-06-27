@@ -24,14 +24,15 @@ bool different(char a[N][M], char b[N][M]) {
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
             if (a[i][j] != b[i][j]) {
-                for(int i = 0; i < 9; i++){
-                    strcpy(b[i], a[i]);
+                // FIX: Usa 'k' al posto di 'i' per non sovrascrivere l'indice esterno!
+                for(int k = 0; k < 9; k++){
+                    strcpy(b[k], a[k]);
                 }
-                return false;  // appena trovi una differenza, esci e ritorna true
+                return false;  
             }
         }
     }
-    return true; // se arrivi qui, sono identici in tutto
+    return true; 
 }
 
 

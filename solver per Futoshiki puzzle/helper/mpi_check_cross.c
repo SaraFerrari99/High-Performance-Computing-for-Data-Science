@@ -86,33 +86,26 @@ void extract_range_from_constraints(char line[P], int pos, int *minV, int *maxV)
 
 // Controlla se un numero rispetta i vincoli < e > vicini nella riga
 bool check_constraints(char line[P], int pos, int num) {
-    // Controllo a sinistra
-    for(int i = pos - 1; i >= 0; i -= 2) {
-        if(line[i] == '<') {
-            if(is_digit(line[i-1]) && (line[i-1]-'0') >= num)
-                return false;
-        } else if(line[i] == '>') {
-            if(is_digit(line[i-1]) && (line[i-1]-'0') <= num)
-                return false;
-        } else if(is_digit(line[i])) {
-            break;
+    
+    // Controllo immediato a SINISTRA
+    if (pos >= 2) {
+        if (line[pos - 1] == '<') {
+            if (is_digit(line[pos - 2]) && (line[pos - 2] - '0') >= num) return false;
+        } else if (line[pos - 1] == '>') {
+            if (is_digit(line[pos - 2]) && (line[pos - 2] - '0') <= num) return false;
         }
     }
 
-    // Controllo a destra
-    for(int i = pos + 1; i < P; i += 2) {
-        if(line[i] == '<') {
-            if(is_digit(line[i+1]) && (line[i+1]-'0') <= num)
-                return false;
-        } else if(line[i] == '>') {
-            if(is_digit(line[i+1]) && (line[i+1]-'0') >= num)
-                return false;
-        } else if(is_digit(line[i])) {
-            break;
+    // Controllo immediato a DESTRA
+    if (pos <= P - 3) {
+        if (line[pos + 1] == '<') {
+            if (is_digit(line[pos + 2]) && (line[pos + 2] - '0') <= num) return false;
+        } else if (line[pos + 1] == '>') {
+            if (is_digit(line[pos + 2]) && (line[pos + 2] - '0') >= num) return false;
         }
     }
 
-    return true;
+    return true; // Se passa i controlli vicini, è valido!
 }
 
 bool check_full_line(char line[P]) {
