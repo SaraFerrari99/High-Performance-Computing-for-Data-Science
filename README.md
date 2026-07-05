@@ -38,18 +38,18 @@ Before running the solver, you must provide the puzzle input:
 # Viewing Results
 Once the execution is finished, the program will generate the result in the Solution/ directory.
 
-    - Output File: ```bash Solution/solution.txt ```
+    - Output File: Solution/solution.txt
 
 # Architecture Overview
 The solver follows a master-worker communication pattern. The master process handles the main backtracking logic and file I/O, while worker processes compute specific row, column, and cross-constraint validations in parallel.
 
 # Project Structure
-- ```bash src/ ```: Main source code and Makefile.
+- ``` src/ ```: Main source code and Makefile.
 
-- ```bash helper/ ```: Auxiliary libraries for MPI communication, rules, and logging.
+- ``` helper/ ```: Auxiliary libraries for MPI communication, rules, and logging.
 
-- ```bash puzzle/ ```: Input directory for puzzle files.
+- ``` puzzle/ ```: Input directory for puzzle files.
 
-- ```bash Solution/ ```: Output directory for generated solutions.
+- ``` Solution/ ```: Output directory for generated solutions.
 
 Developed for High-Performance Computing (HPC) environments.
