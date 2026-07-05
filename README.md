@@ -9,9 +9,14 @@ To compile and execute this project, you need an MPI library (such as OpenMPI) i
 **Install the required dependencies:**
 ```bash
 sudo apt update && sudo apt install openmpi-bin libopenmpi-dev -y
-
+```
 
 ## Setup
 
 Before running the solver, you must provide the puzzle input:
 
+1. Ensure the puzzle/ directory exists in the project root.
+
+2. Place your puzzle configuration file in puzzle/puzzle1.txt.
+
+    - Note: Ensure the file format matches the input requirements expected by the source code.
