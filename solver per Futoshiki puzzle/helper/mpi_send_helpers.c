@@ -1,4 +1,5 @@
 #include "mpi_send_helpers.h"
+#include "log.h"
 
 void send_row(char row[5][M], char puzzle[N][M],char type[1])
 {
@@ -11,11 +12,9 @@ void send_row(char row[5][M], char puzzle[N][M],char type[1])
         }else{
             if(type[0] == '2'){
                 MPI_Send(puzzle[i*2], 9, MPI_CHAR, i + 11, 7, MPI_COMM_WORLD);
-                printf("MANDATO DA SEND DA 0 A %i\n",i+11);
             }else{
                 if(type[0] == '3'){
                     MPI_Send(puzzle[i*2], 9, MPI_CHAR, i + 16, 7, MPI_COMM_WORLD);
-                    printf("MANDATO DA SEND DA 0 A %i\n",i+16);
                 }
             }
         }

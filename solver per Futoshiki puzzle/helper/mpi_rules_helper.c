@@ -1,10 +1,11 @@
 #include "mpi_rules_helper.h"
+#include "log.h"
 
 UpdateMessage apply_rules(char line[6], char line_sign[P])
 {
     UpdateMessage result;
     result.changed = false;
-    strcpy(result.line, line);  // copia lo stato iniziale
+    strcpy(result.line, line);  //Copy the original line to result.line
 
     bool local_change;
 
@@ -12,34 +13,27 @@ UpdateMessage apply_rules(char line[6], char line_sign[P])
         local_change = false;
         bool two_start = false;
 
-        // 1. void
+        // 1.First rule: check for only one void
         if (check_only_one_void(result.line, line_sign)) {
             local_change = true;
             result.changed = true;
-            continue; // torna a ricontrollare dalla void
+            continue; //Restart the loop to check for further changes
         }
         
-        //VA MESSO STUDIATO UN BLOCCO CHE ASPETTA CHE TUTTI I PROCESSI ARRIVINO QUI E CHE POI PROSEGUE
-
-        // 2. prima regola nuova
+        // 2.Second rule: check for minor/major constraints
         if (check_minor_major(line_sign, result.line)) {
             local_change = true;
             result.changed = true;
             continue;
         }
         
-        // 3. seconda regola nuova
+        // 3. Third rule: check for number between constraints
         if (check_number_between(line_sign,result.line)) {
             local_change = true;
             result.changed = true;
             continue;
         }
         
-
-       //DEVO SEMPRE RìTORNAR EPER OGNI FUNZIONE QUALCOSA TIPO 1 2 3 4 5 
-       //SEMPLICEMENTE PER FARLO MI BASTA MODIFICARE IL CONTENUTO DI RESULT.LINE
-
-
     } while (local_change);
 
     return result;

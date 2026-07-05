@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/stat.h>
-
 #include "../helper/mpi_send_helpers.h"
 #include "../helper/mpi_update_puzzle.h"
 #include "../helper/mpi_check_void_helper.h"
@@ -16,8 +15,9 @@
 void set_puzzle(char puzzle[N][M], char last_array[N][M],char puzzle_without_sign[5][M], char puzzle_without_sign_reverse[5][6], char puzzle_reverse[N][M]){
     
     LOG_INFO(0,"Puzzle setting start");
+    LOG_INFO(0,"Opening of the puzzle file puzzle1.txt");
 
-    LOG_INFO(0,"Opening of the puzzle file");
+    
     FILE *fp = fopen("../puzzle/puzzle1.txt", "r");
     if (!fp)
     {
@@ -26,19 +26,17 @@ void set_puzzle(char puzzle[N][M], char last_array[N][M],char puzzle_without_sig
     }
 
     //check every row and save it
-    LOG_INFO(0, "Reading row");
     for (int i = 0; i < N; i++){
 
         //check if the row is correctly readable
         if (fgets(puzzle[i], M, fp) == NULL)
         {
-            LOG_ERROR(stderr, "Error on reading void row %d\n", i);
+            LOG_ERROR(0, "Error on reading void row %d\n", i);
             fclose(fp);
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
 
         // Remove eventually new line in the end of the row
-        LOG_INFO(0,"Remove the final jump at the end of row");
         char *p = puzzle[i];
         while (*p)
         {
@@ -51,7 +49,7 @@ void set_puzzle(char puzzle[N][M], char last_array[N][M],char puzzle_without_sig
         }
     }
 
-    LOG_INFO(0,"Start normal array padding without signs");
+    //start padding the array without signs
     for (int i = 0; i < N; i += 2){
         int k = 0;
         for (int j = 0; puzzle[i][j] != '\0'; j++)
@@ -64,7 +62,7 @@ void set_puzzle(char puzzle[N][M], char last_array[N][M],char puzzle_without_sig
         puzzle_without_sign[i / 2][k] = '\0'; //end of string/row
     }
 
-    LOG_INFO(0,"Start reverse array padding without signs");
+    //start padding the reverse array without signs
     for (int c = 0; c < 5; c++)
     {
         for (int r = 0; r < 5; r++)
@@ -74,7 +72,7 @@ void set_puzzle(char puzzle[N][M], char last_array[N][M],char puzzle_without_sig
         puzzle_without_sign_reverse[c][5] = '\0';//end of string/row
     }
 
-    LOG_INFO(0,"Start reverse array padding");
+    //start padding the reverse array with signs
     int cols_lenght = strlen(puzzle[0]); // 11
     for (int c = 0; c < cols_lenght; c++)
     {
@@ -103,32 +101,37 @@ void set_puzzle(char puzzle[N][M], char last_array[N][M],char puzzle_without_sig
 
     fclose(fp);
 
-    LOG_INFO(0,"Intialize with the initial array");
     for(int i = 0; i < 9; i++){
         strcpy(last_array[i], puzzle[i]);
     }
+
+    LOG_INFO(0,"Puzzle setting completed");
 }
 
 void check_if_array_completed(char puzzle_without_sign[5][M], bool repeat)
 {
-    repeat = false; // default
+    LOG_INFO(0,"Checking if the array is completed");
+    repeat = false;
 
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 5; j++) {
             if (puzzle_without_sign[i][j] == '0') {
-                printf("TROVATO UNO 0\n");
                 repeat = true;
-                return;  // esci appena trovi uno zero
+                LOG_INFO(0,"Found a '0' at position (%d, %d)\n", i, j);
+                return;  // exit when you find the first '0'
             }
         }
     }
-    printf("NESSUNO 0 TROVATO\n");
+
+    LOG_WARN(0,"No '0' found\n");
 }
 
 void deterministic_logic(char puzzle_without_sign[5][M],
                          char puzzle[N][M], char puzzle_without_sign_reverse[5][6],
                          char puzzle_reverse[N][M],
                          char last_array[N][M]){
+
+    LOG_INFO(0,"Starting deterministic logic");
 
     //initialization of the repeat variable to do a cicle 
     bool repeat = true;
@@ -142,13 +145,13 @@ void deterministic_logic(char puzzle_without_sign[5][M],
                 strcpy(snapshot[i], puzzle_without_sign[i]);
             }
 
-            printf("NUOVO CICLO\n");
+            LOG_INFO(0,"Starting update puzzle");
             while(!first_check){
-                // Manda righe e colonne ai worker
+                // Send rows and columns to workers
                 send_row(puzzle_without_sign, puzzle, "1");
                 send_column(puzzle_without_sign_reverse, puzzle_reverse);
 
-                // Riceve righe aggiornate
+                // Receive rows updated
                 for (int r = 1; r <= 5; r++)
                 {
 
@@ -162,7 +165,7 @@ void deterministic_logic(char puzzle_without_sign[5][M],
                     strcpy(puzzle_without_sign[r - 1], updated_row);
                 }
 
-                // Riceve colonne aggiornate
+                // Receive updated columns
                 for (int r = 6; r < 11; r++)
                 {
                     char updated_col[6];
@@ -175,33 +178,13 @@ void deterministic_logic(char puzzle_without_sign[5][M],
 
                 char array_transposed[5][6];
                 first_check = update_puzzle_unsigned(puzzle_without_sign, puzzle_without_sign_reverse, array_transposed,puzzle,last_array, puzzle_reverse);
-
-                for(int i = 0; i < 5; i++){
-                    printf("array final %s\n",puzzle_without_sign[i]);
-                }
-
-                for(int i = 0; i < 5; i++){
-                    printf("array final reverse%s\n",puzzle_without_sign_reverse[i]);
-                }
-
-                for(int i = 0; i < 9; i++){
-                    printf("array final with sign%s\n",puzzle[i]);
-                }
-
-                for(int i = 0; i < 9; i++){
-                    printf("array final puzzle reverse with sign%s\n",puzzle_reverse[i]);
-                }
-
-                printf("END First ARRay update\n");
             }
 
-            printf("FUBE PRIMO CICLO\n");
-
+            LOG_INFO(0,"End Update puzzle");
 
             //IMPLEMENT X LOGIC ! ROW ALL COLUMS 
             //send to project between 11 and 15 row and column to understand + 0
-            // Manda righe e colonne ai worker
-
+            // Send rows and columns to workers
             check_if_array_completed(puzzle_without_sign,repeat);
             
             for(int i = 0; i < 5; i++){
@@ -220,7 +203,7 @@ void deterministic_logic(char puzzle_without_sign[5][M],
                     
                     strcpy(puzzle_without_sign[m], update_row_cross);
 
-                    // FIX CRITICO: Aggiorna solo se update_col_cross ha un numero!
+                    // FIX DANGEROUS! Update only if update_col_cross has a number!
                     for (int k = 0; k < 5; k++) {
                         if (update_col_cross[k] != '0') {
                             puzzle_without_sign_reverse[i][k] = update_col_cross[k];
@@ -233,12 +216,6 @@ void deterministic_logic(char puzzle_without_sign[5][M],
 
             first_check = false;
 
-            //DOVREI AVER AGGIORNATO TUTTO GIA !! VERIFICA!!
-
-            for(int i = 0; i < 5; i++){
-                printf("array final %s\n",puzzle_without_sign[i]);
-            }
-
             bool changed = false;
             for (int i = 0; i < 5; i++) {
                 if (strcmp(snapshot[i], puzzle_without_sign[i]) != 0) {
@@ -248,7 +225,7 @@ void deterministic_logic(char puzzle_without_sign[5][M],
             }
 
             if (!changed) {
-                printf("NESSUN CAMBIAMENTO: esco dal ciclo deterministico\n");
+                LOG_WARN(0,"No changes detected\n");
                 repeat = false;
                 break;
             }
@@ -256,6 +233,8 @@ void deterministic_logic(char puzzle_without_sign[5][M],
             check_if_array_completed(puzzle_without_sign,repeat);
 
         }
+
+        LOG_INFO(0, "End deterministic logic");
 }
 
 bool is_complete(char puzzle[5][M]) {
@@ -292,13 +271,13 @@ bool is_safe_guess(
     int r, int c,
     char val
 ) {
-    // controllo riga
+    //check rows
     for (int j = 0; j < 5; j++) {
         if (j != c && puzzle_without_sign[r][j] == val)
             return false;
     }
 
-    // controllo colonna
+    //check colums
     for (int i = 0; i < 5; i++) {
         if (i != r && puzzle_without_sign[i][c] == val)
             return false;
@@ -314,7 +293,7 @@ bool check_inequality_constraints(
 ) {
     int v = val - '0';
 
-    // Controllo sinistra
+    // Check right
     if (c > 0) {
         char left = puzzle[r*2][(c-1)*2];
         char sign = puzzle[r*2][(c*2)-1];
@@ -326,7 +305,7 @@ bool check_inequality_constraints(
         }
     }
 
-    // Controllo destra
+    //Check left
     if (c < 4) {
         char right = puzzle[r*2][(c+1)*2];
         char sign = puzzle[r*2][(c*2)+1];
@@ -338,7 +317,7 @@ bool check_inequality_constraints(
         }
     }
 
-    // Controllo sopra
+    // Check up
     if (r > 0) {
         char up = puzzle[(r-1)*2][c*2];
         char sign = puzzle[(r*2)-1][c*2];
@@ -350,7 +329,7 @@ bool check_inequality_constraints(
         }
     }
 
-    // Controllo sotto
+    //Check down
     if (r < 4) {
         char down = puzzle[(r+1)*2][c*2];
         char sign = puzzle[(r*2)+1][c*2];
@@ -369,11 +348,11 @@ bool is_puzzle_valid_with_signs(char puzzle[N][M]) {
     for (int r = 0; r < 5; r++) {
         for (int c = 0; c < 5; c++) {
             char val = puzzle[r*2][c*2];
-            if (val == '0') continue; // Salta le celle vuote, controlla solo i numeri presenti
+            if (val == '0') continue; // Jump void cells. check only present number
             
             int v = val - '0';
             
-            // Controllo segno a destra (se non siamo nell'ultima colonna)
+            //Check left sign (if not in the last column) 
             if (c < 4) {
                 char right = puzzle[r*2][(c+1)*2];
                 char sign = puzzle[r*2][(c*2)+1];
@@ -384,7 +363,7 @@ bool is_puzzle_valid_with_signs(char puzzle[N][M]) {
                 }
             }
             
-            // Controllo segno sotto (se non siamo nell'ultima riga)
+            //Check down sign (if not in the last column) 
             if (r < 4) {
                 char down = puzzle[(r+1)*2][c*2];
                 char sign = puzzle[(r*2)+1][c*2];
@@ -396,7 +375,7 @@ bool is_puzzle_valid_with_signs(char puzzle[N][M]) {
             }
         }
     }
-    return true; // Nessuna violazione trovata!
+    return true; //NO violation found!
 }
 
 
@@ -407,12 +386,13 @@ bool solve_with_guessing(
     char puzzle_reverse[N][M],
     char last_array[N][M]
 ) {
-    printf("IN GUESSING\n");
+
+    LOG_INFO(0, "Start guessing");
 
     int r = -1, c = -1;
     char row[6], col[6];
 
-    /* 1️⃣ trova il primo 0 */
+    //FInd first 0
     for (int i = 0; i < 5 && r == -1; i++) {
         for (int j = 0; j < 5; j++) {
             if (puzzle_without_sign[i][j] == '0') {
@@ -428,11 +408,11 @@ bool solve_with_guessing(
     }
 
     if (r == -1) {
-        printf("Griglia completa! Soluzione trovata!\n");
-        return true; // <--- FIX: Ritorna TRUE perché abbiamo finito!
+        LOG_INFO(0,"Grid complete! Solution found!\n");
+        return true; // <--- FIX: Return true if finish!
     }
 
-    /* 2️⃣ calcola numeri candidati */
+    //FOund cndidate numbers
     int candidates[5];
     int count = 0;
 
@@ -448,16 +428,16 @@ bool solve_with_guessing(
             candidates[count++] = n;
     }
 
-    /* 3️⃣ prova ogni candidato */
+    //Try every candidate
     for (int k = 0; k < count; k++) {
         char guess = '0' + candidates[k];
 
         if (!is_safe_guess(puzzle_without_sign, r, c, guess)) continue;
         if (!check_inequality_constraints(puzzle, r, c, guess)) continue;
         
-        printf("Provo guess %c in (%d,%d)\n", guess, r, c);
+        LOG_INFO(0,"Trying guess %c in (%d,%d)\n", guess, r, c);
 
-        /* ===== BACKUP COMPLETO ===== */
+        // BACKUP Complete
         char bu[5][M], bur[5][6], bp[N][M], br[N][M], bl[N][M];
         for (int i = 0; i < 5; i++) {
             strcpy(bu[i], puzzle_without_sign[i]);
@@ -469,19 +449,20 @@ bool solve_with_guessing(
             strcpy(bl[i], last_array[i]);
         }
 
-        /* ===== INSERIMENTO ===== */
+        //added
         puzzle_without_sign[r][c] = guess;
         puzzle_without_sign_reverse[c][r] = guess;
         puzzle[r*2][c*2] = guess;
         puzzle_reverse[c*2][r*2] = guess;
         last_array[r*2][c*2] = guess;
 
-        /* ===== LOGICA DETERMINISTICA ===== */
+        //deterministic logic
         deterministic_logic(puzzle_without_sign, puzzle, puzzle_without_sign_reverse, puzzle_reverse, last_array);
 
-        /* ===== VERIFICA E RICORSIONE ===== */
-        // IL FIX E' QUI: Andiamo avanti SOLO SE non ci sono duplicati 
-        // E SE l'intera griglia rispetta tutti i segni!
+    
+        // FIX: We go after only if there is no duplicates in the grid and if the grid is valid with signs. 
+        //Otherwise, we backtrack immediately.    
+
         if (!has_duplicates(puzzle_without_sign) && is_puzzle_valid_with_signs(puzzle)) {
             
             if (solve_with_guessing(puzzle_without_sign, puzzle_without_sign_reverse, puzzle, puzzle_reverse, last_array)) {
@@ -489,8 +470,8 @@ bool solve_with_guessing(
             }
         }
 
-        /* ===== BACKTRACK ===== */
-        printf("Guess %c in (%d,%d) FALLITO → ripristino\n", guess, r, c);
+        //BACKTRACK
+        LOG_WARN(0,"Guess %c in (%d,%d) FAILED → restore\n", guess, r, c);
         for (int i = 0; i < 5; i++) {
             strcpy(puzzle_without_sign[i], bu[i]);
             strcpy(puzzle_without_sign_reverse[i], bur[i]);
@@ -502,14 +483,14 @@ bool solve_with_guessing(
         }
     }
 
-    printf("Nessun guess valido in (%d,%d) → VERO BACKTRACK!\n", r, c);
-    return false; // <--- FIX CRITICO: se falliscono tutti i candidati, ritorna FALSE!
+    LOG_WARN(0,"No valid guess in (%d,%d) → FALSE BACKTRACK!\n", r, c);
+    return false; //Dangerous FIX: If all the candidates fail, return FALSE!
 }
 
 void save_puzzle_to_file(const char *filename, char puzzle[N][M]) {
     FILE *fp = fopen(filename, "w");
     if (!fp) {
-        perror("Errore apertura file output");
+        LOG_ERROR(0, "Fatal error: unable to open file %s\n", filename);
         return;
     }
 
@@ -517,8 +498,9 @@ void save_puzzle_to_file(const char *filename, char puzzle[N][M]) {
         fprintf(fp, "%s\n", puzzle[i]);
     }
 
+    fflush(fp);
     fclose(fp);
-    printf("Puzzle salvato su file: %s\n", filename);
+    LOG_INFO(0, "Puzzle saved correctly in %s", filename);
 }
 
 void stop_all_processes() {
@@ -544,7 +526,7 @@ void stop_all_processes() {
         MPI_Send(&dummy_int, 1, MPI_INT, p, 11, MPI_COMM_WORLD);
     }
 
-    printf("STOP inviato a tutti i processi\n");
+    LOG_INFO(0, "STOP sent to all processes\n");
 }
 
 int main(int argc, char *argv[])
@@ -575,25 +557,23 @@ int main(int argc, char *argv[])
         LOG_INFO(rank,"SET PUZZLE");
         set_puzzle(puzzle, last_array, puzzle_without_sign, puzzle_without_sign_reverse, puzzle_reverse);
                 
-        printf("DETERMINISTIC LOGIC INIZIALE\n");
         deterministic_logic(puzzle_without_sign, puzzle, puzzle_without_sign_reverse, puzzle_reverse, last_array);
 
-        printf("INIZIO SOLVE GUESSING (RICORSIVO)\n");
         bool completato = solve_with_guessing(puzzle_without_sign, puzzle_without_sign_reverse, puzzle, puzzle_reverse, last_array);
 
         if (completato) {
-            printf("PUZZLE RISOLTO CON SUCCESSO!\n");
+            LOG_INFO(0, "PUZZLE Solved Successfully!\n");
         } else {
-            printf("IMPOSSIBILE RISOLVERE IL PUZZLE.\n");
+            LOG_ERROR(0, "Impossible to solve the puzzle.\n");
         }
         
         struct stat st = {0};
 
         if (stat("../Solution", &st) == -1) {
             if (mkdir("../Solution", 0777) == -1) {
-                perror("Errore creazione directory");
+                LOG_ERROR(0, "Error creating directory");
             } else {
-                printf("Directory creata: %s\n", "../Solution");
+                LOG_INFO(0, "Directory created: %s\n", "../Solution");
             }
         }
 
@@ -612,10 +592,10 @@ int main(int argc, char *argv[])
             MPI_Recv(my_row, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(my_row_sign, 9, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(puzzle_char, 45, MPI_CHAR, 0, 6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            my_row_sign[9] = '\0';  // aggiungi terminatore
+            my_row_sign[9] = '\0';  // add terminator
 
             for(int i = 0; i < 5; i++){
-                puzzle_char[i][9] = '\0';  // aggiungi terminatore alla fine di ogni riga
+                puzzle_char[i][9] = '\0';  //add terminator to every row of the puzzle
             }
             
 
@@ -637,7 +617,7 @@ int main(int argc, char *argv[])
             char my_col_reverse[10];
             MPI_Recv(my_col, 6, MPI_CHAR, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(my_col_reverse, 9, MPI_CHAR, 0, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            my_col_reverse[9] = '\0';  // aggiungi terminatore
+            my_col_reverse[9] = '\0';  // add terminator
             
             if (strncmp(my_col, "STOP", 4) == 0)
             {

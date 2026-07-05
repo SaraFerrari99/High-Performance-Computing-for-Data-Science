@@ -1,8 +1,12 @@
 #include "mpi_check_cross.h"
+#include "log.h"
 
 void check_valid_number(char col[P], char row[P], PossibleNumber *number_possible){
+
+    LOG_INFO(0,"Checking for valid numbers in the line");
+
     number_possible->count = 0;
-    //per ogni numero per ogni elemento della riga
+    //For each number from 1 to 5, check if it is present in either the row
     for (int i = 1; i < 6; i++) {
         bool found = false;
         for (int j = 0; j < 5; j++) {
@@ -28,7 +32,7 @@ void extract_range_from_constraints(char line[P], int pos, int *minV, int *maxV)
     int dist;
     int i;
 
-    /* ---------- DESTRA ---------- */
+    //RIGHT
     dist = 0;
     i = pos + 1;
     while (i < P) {
@@ -54,7 +58,7 @@ void extract_range_from_constraints(char line[P], int pos, int *minV, int *maxV)
         else break;
     }
 
-    /* ---------- SINISTRA ---------- */
+    //LEFT
     dist = 0;
     i = pos - 1;
     while (i >= 0) {
@@ -84,10 +88,10 @@ void extract_range_from_constraints(char line[P], int pos, int *minV, int *maxV)
     if (*maxV > 5) *maxV = 5;
 }
 
-// Controlla se un numero rispetta i vincoli < e > vicini nella riga
+//Check if a number respects the neighboring < and > constraints in the line
 bool check_constraints(char line[P], int pos, int num) {
     
-    // Controllo immediato a SINISTRA
+    //Check immediate left
     if (pos >= 2) {
         if (line[pos - 1] == '<') {
             if (is_digit(line[pos - 2]) && (line[pos - 2] - '0') >= num) return false;
@@ -96,7 +100,7 @@ bool check_constraints(char line[P], int pos, int num) {
         }
     }
 
-    // Controllo immediato a DESTRA
+    // Check immediate right
     if (pos <= P - 3) {
         if (line[pos + 1] == '<') {
             if (is_digit(line[pos + 2]) && (line[pos + 2] - '0') <= num) return false;
@@ -105,7 +109,7 @@ bool check_constraints(char line[P], int pos, int num) {
         }
     }
 
-    return true; // Se passa i controlli vicini, è valido!
+    return true; //if passed all checks, the number respects the constraints
 }
 
 bool check_full_line(char line[P]) {
@@ -129,14 +133,14 @@ char take_final_value(char row[P], int pos, char col[P], int *rMin, int *rMax, i
     int used_row[6] = {0};
     int used_col[6] = {0};
 
-    // Segna numeri già presenti nella riga
+    // Sign numbers already present in the row
     for(int i = 0; i < P; i += 2) {
         if(row[i] >= '1' && row[i] <= '5' && i != pos) {
             used_row[row[i]-'0'] = 1;
         }
     }
 
-    // Segna numeri già presenti nella colonna
+    // Sign numbers already present in the column
     for(int i = 0; i < P; i += 2) {
         if(col[i] >= '1' && col[i] <= '5') {
             used_col[col[i]-'0'] = 1;
@@ -146,7 +150,7 @@ char take_final_value(char row[P], int pos, char col[P], int *rMin, int *rMax, i
     char final_value = 0;
     *count = 0;
 
-    // Controlla tutti i numeri possibili tra rMin e rMax
+    // Check all possible numbers between rMin and rMax
     for(int n = *rMin; n <= *rMax; n++) {
         row[pos] = '0' + n;
         if(!used_row[n] && !used_col[n] && check_constraints(row, pos, n) && check_full_line(row)) {
@@ -155,10 +159,10 @@ char take_final_value(char row[P], int pos, char col[P], int *rMin, int *rMax, i
         }
     }
 
-    row[pos] = '0'; // ripristino
+    row[pos] = '0'; // restore
 
     if(*count > 1) {
-        final_value = '0'; // più di un candidato possibile
+        final_value = '0'; // more than one valid number found
     }
 
     return final_value;
@@ -199,7 +203,7 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
 
                     //  certain deduction
                     if(count == 1 && row[pos] == '0'){
-                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        row[pos] = final_value; // THE ONLY MODIFICATION TO THE ROW
                         col[0] = final_value;
                         result.row[5] = '\0';
                         result.col[5] = '\0';
@@ -239,7 +243,7 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
                     //  certain deduction
                     if(count == 1 && row[pos] == '0'){
 
-                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        row[pos] = final_value;  //the only modification to the row
                         col[2] = final_value;
                         result.row[5] = '\0';
                         result.col[5] = '\0';
@@ -278,7 +282,7 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
 
                     //  certain deduction
                     if(count == 1 && row[pos] == '0'){
-                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        row[pos] = final_value;  //the only modification to the row
                         col[4] = final_value;
                         result.row[5] = '\0';
                         result.col[5] = '\0';
@@ -318,7 +322,7 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
 
                     //  certain deduction
                     if(count == 1 && row[pos] == '0'){
-                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        row[pos] = final_value;  //THE ONLY MODIFICATION TO THE ROW
                         col[6] = final_value;
                         result.row[5] = '\0';
                         result.col[5] = '\0';
@@ -359,7 +363,7 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
 
                     //  certain deduction
                     if(count == 1 && row[pos] == '0'){
-                        row[pos] = final_value;  // <<< L’UNICA MODIFICA ALLA RIGA
+                        row[pos] = final_value;  //THE ONLY MODIFICATION TO THE ROW
                         col[8] = final_value;
                         result.row[5] = '\0';
                         result.col[5] = '\0';
@@ -376,7 +380,7 @@ UpdateLine cross_rules(char col[P], char row[P], int rank, int number_of_column)
         default:
             break;
     }
-    //IMPLEMENTARE LA LOGICA E AGGIORNARE RESULT.ROW E RESULT.COL
+    //IMPLEMENTING THE LOGIC AND UPDATING RESULT.ROW AND RESULT.COL
 
     for(int i = 0; i < 5; i++){
         result.row[i] = row[i*2];

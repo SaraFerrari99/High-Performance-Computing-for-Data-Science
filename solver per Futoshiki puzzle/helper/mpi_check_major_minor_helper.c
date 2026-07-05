@@ -1,9 +1,13 @@
 #include "mpi_check_major_minor_helper.h"
 #include <unistd.h>
+#include "log.h"
 
 
 bool check_minor_major(char line_sign[10], char line[6])
 {
+
+    LOG_INFO(0,"Checking for minor/major constraints in the line");
+
     char save_array[11];
 
     memcpy(save_array, line_sign, 10);
@@ -39,7 +43,6 @@ bool check_minor_major(char line_sign[10], char line[6])
         }
     }
 
-    // VA AGGIORNATA LA LINE ALLA FINE CON LA LINE CON SOLO NUMERI E NON SEGNI
     if(modified){
         int pos = 0;
         for (int i = 0; save_array[i] != '\0'; i++)
@@ -48,7 +51,7 @@ bool check_minor_major(char line_sign[10], char line[6])
             {
                 line[pos++] = save_array[i];
                 if (pos >= 5)
-                    break; // massimo 5 numeri
+                    break; //Max 5 numbers
             }
         }
         line[pos] = '\0';
