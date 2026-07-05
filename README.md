@@ -15,8 +15,41 @@ sudo apt update && sudo apt install openmpi-bin libopenmpi-dev -y
 
 Before running the solver, you must provide the puzzle input:
 
-1. Ensure the puzzle/ directory exists in the project root.
+1. Ensure the puzzle directory exists in the project root.
 
 2. Place your puzzle configuration file in puzzle/puzzle1.txt.
 
     - Note: Ensure the file format matches the input requirements expected by the source code.
+
+# Compilation and Execution
+1. Navigate to the src folder:
+    ```bash
+    cd src
+    ```
+2. Compile the source code:
+    ```bash
+    make
+    ```
+3. Run the application:
+    ```bash
+    make run
+    ```
+
+# Viewing Results
+Once the execution is finished, the program will generate the result in the Solution/ directory.
+
+    - Output File: ```bash Solution/solution.txt ```
+
+# Architecture Overview
+The solver follows a master-worker communication pattern. The master process handles the main backtracking logic and file I/O, while worker processes compute specific row, column, and cross-constraint validations in parallel.
+
+# Project Structure
+- ```bash src/ ```: Main source code and Makefile.
+
+- ```bash helper/ ```: Auxiliary libraries for MPI communication, rules, and logging.
+
+- ```bash puzzle/ ```: Input directory for puzzle files.
+
+- ```bash Solution/ ```: Output directory for generated solutions.
+
+Developed for High-Performance Computing (HPC) environments.
