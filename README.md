@@ -9,3 +9,9 @@ To compile and execute this project, you need an MPI library (such as OpenMPI) i
 **Install the required dependencies:**
 ```bash
 sudo apt update && sudo apt install openmpi-bin libopenmpi-dev -y
+
+
+## Setup
+
+Before running the solver, you must provide the puzzle input:
+
