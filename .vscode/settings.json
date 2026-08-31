@@ -5,5 +5,6 @@
         "stdio.h": "c",
         "mpi_check_void_helper.h": "c",
         "mpi_check_cross.h": "c"
-    }
+    },
+    "C_Cpp.default.compilerPath": "/apps/openmpi-4.0.4/bin/mpicc"
 }
